@@ -9,25 +9,32 @@ namespace TCPServerTest
 {
     public class ClientHandler
     {
-        private List<Thread> threads = new List<Thread>();
-        private List<TcpClient> clients = new List<TcpClient>();
+        private static List<Thread> threads = new List<Thread>();
+        private static List<TcpClient> clients = new List<TcpClient>();
         private TcpClient client;
 
         public ClientHandler(TcpClient client)
         {
             this.client = client;
-            clients.Add(client);
+            lock (clients)
+            {
+                clients.Add(client);
+            }
         }
 
         public void Start()
         {
             var t = new Thread(DoStuff);
-            threads.Add(t);
-            t.Start();
+            lock (threads)
+            {
+                threads.Add(t);
+            }
+            t.Start(client);
         }
 
-        public void DoStuff()
+        public void DoStuff(object c)
         {
+            TcpClient client = (TcpClient)c;
             Console.WriteLine(client.Client.RemoteEndPoint + " connected. ");
             bool connected = true;
 
@@ -48,15 +55,11 @@ namespace TCPServerTest
                 {
                     connected = false;
                 }
-                
-                //loops++;
-                //if (loops > 10)
-                //    connected = false;
             }
             Console.WriteLine("Closing client " + client.Client.RemoteEndPoint);
             client.Close();
-            //threads.Remove()
-            //clients.Remove()
+            clients.Remove(client);
+            //threads.Remove();
         }
     }
 }
